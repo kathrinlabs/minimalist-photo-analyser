@@ -867,7 +867,7 @@
     /* -------------------------------------------------------
        IMAGE RESIZE + BASE64
     ------------------------------------------------------- */
-    function resizeAndEncode(file, maxPx = 1600) {
+    function resizeAndEncode(file, maxPx = 800) {
       return new Promise((resolve, reject) => {
         const reader = new FileReader();
         reader.onerror = reject;
@@ -885,7 +885,7 @@
             canvas.width  = tw;
             canvas.height = th;
             canvas.getContext('2d').drawImage(img, 0, 0, tw, th);
-            const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+            const dataUrl = canvas.toDataURL('image/jpeg', 0.65);
             resolve({ base64: dataUrl.split(',')[1], mediaType: 'image/jpeg' });
           };
           img.src = evt.target.result;
