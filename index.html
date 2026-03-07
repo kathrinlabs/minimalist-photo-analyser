@@ -687,7 +687,7 @@
         <div class="loading-bar-fill"></div>
       </div>
       <p class="loading-text">Analysing your composition…</p>
-      <p class="loading-sub">The AI is evaluating your photo against the 7 design principles.</p>
+      <p class="loading-sub">The AI is analysing your photo using the full Minimalist Photo Composition framework.</p>
     </div>
 
     <!-- ERROR -->
@@ -817,6 +817,13 @@
 
       hideResults();
       hideError();
+      // Update loading subtitle based on mode
+      const loadingSub = document.querySelector('.loading-sub');
+      if (loadingSub) {
+        loadingSub.textContent = selectedMode === 'A'
+          ? 'The AI is analysing signal vs. noise, composition, contrast, colour, and editing potential.'
+          : 'The AI is developing a minimalist composite concept — stage, subject, atmosphere, and mood.';
+      }
       showLoading();
       analyseBtn.disabled = true;
 
