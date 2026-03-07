@@ -1,4 +1,5 @@
-const Anthropic = require("@anthropic-ai/sdk");
+// Minimalist Photo Analyser — Netlify Function
+// Uses native fetch (Node 18+) — no external SDK required
 
 const SYSTEM_PROMPT = `You are an expert minimalist photography coach applying the framework from "The Art of Minimalist Photo Composition" by Kathrin Federer.
 
@@ -88,6 +89,7 @@ Concrete starting steps (Stage → Subject → Atmosphere workflow).
 One sentence: the biggest creative opportunity in this image.`;
 
 exports.handler = async function (event) {
+  // CORS preflight
   if (event.httpMethod === "OPTIONS") {
     return {
       statusCode: 200,
@@ -136,45 +138,63 @@ exports.handler = async function (event) {
     };
   }
 
-  const client = new Anthropic({ apiKey });
   const userPrompt = mode === "A" ? USER_PROMPT_A : USER_PROMPT_B;
 
   try {
-    const response = await client.messages.create({
-      model: "claude-sonnet-4-6",
-      max_tokens: 1200,
-      system: SYSTEM_PROMPT,
-      messages: [
-        {
-          role: "user",
-          content: [
-            {
-              type: "image",
-              source: {
-                type: "base64",
-                media_type: mediaType,
-                data: image,
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
+      },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1200,
+        system: SYSTEM_PROMPT,
+        messages: [
+          {
+            role: "user",
+            content: [
+              {
+                type: "image",
+                source: {
+                  type: "base64",
+                  media_type: mediaType,
+                  data: image,
+                },
               },
-            },
-            {
-              type: "text",
-              text: userPrompt,
-            },
-          ],
-        },
-      ],
+              {
+                type: "text",
+                text: userPrompt,
+              },
+            ],
+          },
+        ],
+      }),
     });
 
-    const analysis = response.content[0].text;
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Anthropic API error:", data);
+      return {
+        statusCode: response.status,
+        headers,
+        body: JSON.stringify({ error: JSON.stringify(data) }),
+      };
+    }
+
+    const analysis = data.content[0].text;
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({ analysis }),
     };
   } catch (err) {
-    console.error("Anthropic API error:", err);
+    console.error("Function error:", err);
     return {
-      statusCode: err.status || 500,
+      statusCode: 500,
       headers,
       body: JSON.stringify({ error: err.message || "Analysis failed. Please try again." }),
     };
