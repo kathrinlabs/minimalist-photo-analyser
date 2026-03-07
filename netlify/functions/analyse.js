@@ -4,7 +4,7 @@
 const https = require('https');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SYSTEM PROMPT — compact but complete framework
+// SYSTEM PROMPT
 // ─────────────────────────────────────────────────────────────────────────────
 const SYSTEM_PROMPT = `You are a minimalist photography coach using the framework from "The Art of Minimalist Photo Composition" by Kathrin Federer. Be warm, precise, and concise — like a coach, not an essay writer.
 
@@ -18,7 +18,7 @@ Framework:
 Keep every section SHORT — 1–3 sentences max per section (except the 7 principles list). Total response must stay under 900 words.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODE A — LIGHTROOM EDIT (compact)
+// MODE A — LIGHTROOM EDIT (unchanged — works well)
 // ─────────────────────────────────────────────────────────────────────────────
 const USER_PROMPT_A = `Analyse this photo for minimalist composition. Lightroom edits only — no compositing.
 
@@ -52,19 +52,16 @@ Rule used + one sentence on how confidently it's applied.
 One sentence only.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODE B — PHOTOSHOP COMPOSITE (compact)
+// MODE B — PHOTOSHOP COMPOSITE (6 sections — timeout-safe)
 // ─────────────────────────────────────────────────────────────────────────────
 const USER_PROMPT_B = `Analyse this photo as a starting point for a minimalist Photoshop composite.
 
 Use these exact bold headers:
 
-**1. First Impression (10-Second Test)**
-1–2 sentences: potential signal, main noise to remove.
+**1. First Impression & Composition**
+2 sentences: what is the signal potential, what works compositionally, what limits it.
 
-**2. Current Composition Analysis**
-1–2 sentences: what works, what limits it.
-
-**3. The 7 Design Principles — Creative Potential**
+**2. The 7 Design Principles — Creative Potential**
 - Focal Point: [current → potential] — Score: X/5
 - Contrast: [current → potential] — Score: X/5
 - Whitespace/Negative Space: [current → potential] — Score: X/5
@@ -73,7 +70,7 @@ Use these exact bold headers:
 - Balance: [current → potential] — Score: X/5
 - Colour: [current → potential] — Score: X/5
 
-**4. Composite Concept**
+**3. Composite Concept**
 - Concept: [1 sentence vision]
 - 3 mood keywords: [word], [word], [word]
 - Stage/background: [brief description]
@@ -82,20 +79,15 @@ Use these exact bold headers:
 - Accent element: [one detail or "none"]
 - Colour palette: [2–3 colours]
 
-**5. What to Remove**
-2–3 bullet points: element — reason.
+**4. What to Remove & Asset Budget**
+Remove: 2 bullet points (element — reason).
+Budget: Main / Secondary / Accent / Colours / Effects
 
-**6. Asset Budget**
-- Main subject: / Secondary: / Accent: / Colours (max 3): / Effects (max 2):
-
-**7. First 3 Photoshop Steps**
+**5. First 3 Photoshop Steps**
 Three numbered steps, one line each.
 
-**8. Minimalism Score**
-[X] / 35 — [one sentence verdict].
-
-**9. One Key Insight**
-One sentence only.`;
+**6. Minimalism Score**
+[X] / 35 — [one sentence verdict]. One Key Insight: [one sentence].`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ANTHROPIC API CALL
@@ -103,8 +95,8 @@ One sentence only.`;
 function callAnthropic(apiKey, userPrompt, imageBase64, mediaType) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
-      model: 'claude-haiku-4-5',
-      max_tokens: 1200,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 900,
       system: SYSTEM_PROMPT,
       messages: [{
         role: 'user',
@@ -147,7 +139,7 @@ function callAnthropic(apiKey, userPrompt, imageBase64, mediaType) {
     req.on('error', (e) => reject({ status: 500, body: { error: e.message } }));
     req.setTimeout(9000, () => {
       req.destroy();
-      reject({ status: 504, body: { error: 'Request timed out after 9s' } });
+      reject({ status: 504, body: { error: 'Request timed out' } });
     });
 
     req.write(payload);
