@@ -1,0 +1,8 @@
+{
+  "name": "analyse-function",
+  "version": "1.0.0",
+  "description": "Netlify serverless function for Minimalist Photo Analyser",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  }
+}

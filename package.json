@@ -1,0 +1,12 @@
+{
+  "name": "minimalist-photo-analyser",
+  "version": "1.0.0",
+  "description": "AI-powered minimalist photo composition analyser",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
