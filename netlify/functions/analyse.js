@@ -4,9 +4,9 @@
 const https = require('https');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SYSTEM PROMPT
+// SYSTEM PROMPT — compact but complete framework
 // ─────────────────────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are a minimalist photography coach using the framework from "The Art of Minimalist Photo Composition" by Kathrin Federer. Be warm, precise, and brief — like a coach, not an essay writer.
+const SYSTEM_PROMPT = `You are a minimalist photography coach using the framework from "The Art of Minimalist Photo Composition" by Kathrin Federer. Be warm, precise, and concise — like a coach, not an essay writer.
 
 Framework:
 - Signal = the one element carrying the message. Noise = everything distracting from it. Target: 70:30 ratio.
@@ -15,12 +15,14 @@ Framework:
 - Asset Budget: 1 main subject, max 1 secondary, max 1 accent, max 3 colours, max 2 effects.
 - Minimalism Score /35: 1–14 = needs rethinking; 15–21 = developing; 22–28 = strong; 29–35 = exceptional.
 
-IMPORTANT: Keep every section to 1–2 sentences maximum. The 7 principles list is the only longer section. Total output must be under 700 words.`;
+Keep every section SHORT — 1–3 sentences max per section (except the 7 principles list). Total response must stay under 900 words.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODE A — LIGHTROOM EDIT
+// MODE A — LIGHTROOM EDIT (compact)
 // ─────────────────────────────────────────────────────────────────────────────
 const USER_PROMPT_A = `Analyse this photo for minimalist composition. Lightroom edits only — no compositing.
+
+Use these exact bold headers:
 
 **1. First Impression (10-Second Test)**
 1–2 sentences: what lands first, is the signal clear?
@@ -50,14 +52,19 @@ Rule used + one sentence on how confidently it's applied.
 One sentence only.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODE B — PHOTOSHOP COMPOSITE
+// MODE B — PHOTOSHOP COMPOSITE (compact)
 // ─────────────────────────────────────────────────────────────────────────────
 const USER_PROMPT_B = `Analyse this photo as a starting point for a minimalist Photoshop composite.
 
-**1. First Impression & Signal Potential**
-1–2 sentences: what is worth keeping, what must go.
+Use these exact bold headers:
 
-**2. The 7 Design Principles — Creative Potential**
+**1. First Impression (10-Second Test)**
+1–2 sentences: potential signal, main noise to remove.
+
+**2. Current Composition Analysis**
+1–2 sentences: what works, what limits it.
+
+**3. The 7 Design Principles — Creative Potential**
 - Focal Point: [current → potential] — Score: X/5
 - Contrast: [current → potential] — Score: X/5
 - Whitespace/Negative Space: [current → potential] — Score: X/5
@@ -66,25 +73,29 @@ const USER_PROMPT_B = `Analyse this photo as a starting point for a minimalist P
 - Balance: [current → potential] — Score: X/5
 - Colour: [current → potential] — Score: X/5
 
-**3. Composite Concept**
+**4. Composite Concept**
 - Concept: [1 sentence vision]
-- Mood: [3 keywords]
-- Stage: [new background, 1 sentence]
+- 3 mood keywords: [word], [word], [word]
+- Stage/background: [brief description]
 - Subject placement: [composition rule + position]
-- Atmosphere: [light, time of day, mood — 1 sentence]
+- Atmosphere: [light, mood, time of day]
+- Accent element: [one detail or "none"]
 - Colour palette: [2–3 colours]
 
-**4. What to Remove**
-2 bullet points: element — reason.
+**5. What to Remove**
+2–3 bullet points: element — reason.
 
-**5. Asset Budget**
-Main: / Secondary: / Accent: / Colours: / Effects:
+**6. Asset Budget**
+- Main subject: / Secondary: / Accent: / Colours (max 3): / Effects (max 2):
 
-**6. First 3 Photoshop Steps**
+**7. First 3 Photoshop Steps**
 Three numbered steps, one line each.
 
-**7. Minimalism Score**
-[X] / 35 — [one sentence verdict + one sentence key insight].`;
+**8. Minimalism Score**
+[X] / 35 — [one sentence verdict].
+
+**9. One Key Insight**
+One sentence only.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ANTHROPIC API CALL
@@ -93,7 +104,7 @@ function callAnthropic(apiKey, userPrompt, imageBase64, mediaType) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
       model: 'claude-haiku-4-5',
-      max_tokens: 1100,
+      max_tokens: 1200,
       system: SYSTEM_PROMPT,
       messages: [{
         role: 'user',
