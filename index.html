@@ -1140,9 +1140,9 @@
        RENDER RESULTS
     ------------------------------------------------------- */
     function renderResults(text, mode) {
-      // Extract score — match "Total: 28/35" or "28 / 35" but NOT "4/5"
-      const scoreMatch = text.match(/\*\*Total:\s*(\d{1,2})\s*\/\s*35\*\*|(\d{1,2})\s*\/\s*35(?!\s*\*\*|\s*—\s*\d)/m);
-      const score = scoreMatch ? parseInt(scoreMatch[1] || scoreMatch[2]) : null;
+      // Extract score — match [X] / 35 or X / 35 but NOT X/5
+      const scoreMatch = text.match(/\[?(\d{1,2})\]?\s*\/\s*35/);
+      const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
 
       // Extract interpretation sentence after score
       let interpText = '';
