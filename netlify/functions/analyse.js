@@ -4,190 +4,126 @@
 const https = require('https');
 
 // ─────────────────────────────────────────────────────────────────────────────
-// SYSTEM PROMPT
+// SYSTEM PROMPT — compact but complete framework
 // ─────────────────────────────────────────────────────────────────────────────
-const SYSTEM_PROMPT = `You are an expert photography and visual composition coach specialising in minimalist aesthetics. You analyse images based on the principles taught in the course "The Art of Minimalist Photo Composition" by Kathrin Federer.
+const SYSTEM_PROMPT = `You are a minimalist photography coach using the framework from "The Art of Minimalist Photo Composition" by Kathrin Federer. Be warm, precise, and concise — like a coach, not an essay writer.
 
-Your analysis must always:
-1. Evaluate the image honestly, constructively and specifically — describe what you actually see
-2. Reference course principles by name: Signal-to-Noise Ratio, Focal Point, Negative Space, Visual Hierarchy, 60/30/10 Colour Rule, Asset Budget, Reduction Rounds, 10-Second Test, etc.
-3. Explain WHY each suggestion matters — the user is learning, not just following instructions
-4. Be warm, precise and encouraging — like a skilled personal coach
+Framework:
+- Signal = the one element carrying the message. Noise = everything distracting from it. Target: 70:30 ratio.
+- Composition rules: Rule of Thirds, Central Placement, Leading Lines, Negative Space, Symmetry, Golden Ratio.
+- 7 Design Principles (score each /5): Focal Point, Contrast, Whitespace/Negative Space, Alignment, Proximity, Balance, Colour (max 2–3 dominant, 60/30/10 rule).
+- Asset Budget: 1 main subject, max 1 secondary, max 1 accent, max 3 colours, max 2 effects.
+- Minimalism Score /35: 1–14 = needs rethinking; 15–21 = developing; 22–28 = strong; 29–35 = exceptional.
 
-The 7 core design principles:
-1. Focal Point — Is there one clear subject that dominates?
-2. Contrast — Tonal, colour, size, or sharpness contrast
-3. Whitespace / Negative Space — Empty space as active design element
-4. Alignment — Elements placed with deliberate intention
-5. Proximity — Related elements grouped logically
-6. Balance — Symmetrical (calm) or asymmetric (dynamic) but always stable
-7. Colour — Controlled palette, max 2-3 dominant colours, 60/30/10 rule
-
-Minimalism Score (each 1-5, total /35): Focal point clear, Background calm, Contrasts consistent, Colour controlled, Elements have function, Breathing room, Overall stability.`;
+Keep every section SHORT — 1–3 sentences max per section (except the 7 principles list). Total response must stay under 900 words.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODE A — LIGHTROOM EDIT
+// MODE A — LIGHTROOM EDIT (compact)
 // ─────────────────────────────────────────────────────────────────────────────
-const USER_PROMPT_A = `Analyse this photo for Lightroom/basic editing improvements — no compositing, no new elements.
+const USER_PROMPT_A = `Analyse this photo for minimalist composition. Lightroom edits only — no compositing.
 
-Use exactly these section headers:
+Use these exact bold headers:
 
-**1. First Impression — The 10-Second Test**
-Describe precisely what you notice first, second, third. What is the signal? What is the noise? Would a viewer understand the image's intent within 10 seconds?
+**1. First Impression (10-Second Test)**
+1–2 sentences: what lands first, is the signal clear?
 
-**2. Composition Analysis**
-Which composition rule is being used or should be applied? (Rule of Thirds, Symmetry, Leading Lines, Centered, Negative Space, Diagonal, L-Form, etc.) Is visual hierarchy clear?
+**2. Signal vs. Noise**
+Signal: [what]. Noise: [what]. Ratio: approx X:Y.
 
-**3. The 7 Design Principles — Evaluation**
-Specific observations for each — not generic statements:
-- **Focal Point** — [specific observation] — Score: /5
-- **Contrast** — [specific observation] — Score: /5
-- **Whitespace / Negative Space** — [specific observation] — Score: /5
-- **Alignment** — [specific observation] — Score: /5
-- **Proximity** — [specific observation] — Score: /5
-- **Balance** — [specific observation] — Score: /5
-- **Colour** — [specific observation] — Score: /5
+**3. Composition Rule**
+Rule used + one sentence on how confidently it's applied.
 
-**4. Signal vs. Noise Analysis**
-Primary signal? List specific elements creating noise — what competes with or weakens the signal? Be precise.
+**4. The 7 Design Principles**
+- Focal Point: [1 sentence] — Score: X/5
+- Contrast: [1 sentence] — Score: X/5
+- Whitespace/Negative Space: [1 sentence] — Score: X/5
+- Alignment: [1 sentence] — Score: X/5
+- Proximity: [1 sentence] — Score: X/5
+- Balance: [1 sentence] — Score: X/5
+- Colour: [1 sentence] — Score: X/5
 
 **5. Lightroom Edit Suggestions**
-3-5 specific suggestions (tonal adjustments, colour grading, crop, contrast, clarity). For each: what to do AND why it strengthens minimalist quality. Connect to course principles.
+3 edits. Each on one line: [What + value] — [Why it helps minimalism].
 
 **6. Minimalism Score**
-1. Focal point clear: /5
-2. Background calm: /5
-3. Contrasts consistent: /5
-4. Colour controlled: /5
-5. Elements have function: /5
-6. Breathing room: /5
-7. Overall stability: /5
-**Total: /35** — one sentence interpretation.
+[X] / 35 — [one sentence verdict].
 
 **7. One Key Insight**
-The single most important thing this photo needs. One sentence only.`;
+One sentence only.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MODE B — PHOTOSHOP COMPOSITE
+// MODE B — PHOTOSHOP COMPOSITE (compact)
 // ─────────────────────────────────────────────────────────────────────────────
-const USER_PROMPT_B = `Analyse this photo for a minimalist Photoshop composite concept.
+const USER_PROMPT_B = `Analyse this photo as a starting point for a minimalist Photoshop composite.
 
-Use exactly these section headers:
+Use these exact bold headers:
 
-**1. First Impression — The 10-Second Test**
-What is the potential signal — the creative core? What is currently noise? What is the biggest opportunity?
+**1. First Impression (10-Second Test)**
+1–2 sentences: potential signal, main noise to remove.
 
 **2. Current Composition Analysis**
-What is working and should be kept? What limits the minimalist potential?
+1–2 sentences: what works, what limits it.
 
 **3. The 7 Design Principles — Creative Potential**
-- **Focal Point** — current state and potential
-- **Contrast** — what type would strengthen this
-- **Whitespace / Negative Space** — how space could be used more powerfully
-- **Alignment** — what compositional structure would serve this subject
-- **Proximity** — how elements should relate in the composite
-- **Balance** — symmetric calm or asymmetric tension?
-- **Colour** — what palette direction would elevate this
+- Focal Point: [current → potential] — Score: X/5
+- Contrast: [current → potential] — Score: X/5
+- Whitespace/Negative Space: [current → potential] — Score: X/5
+- Alignment: [current → potential] — Score: X/5
+- Proximity: [current → potential] — Score: X/5
+- Balance: [current → potential] — Score: X/5
+- Colour: [current → potential] — Score: X/5
 
-**4. Composite Concept Proposal**
-- **Concept** (1 sentence — the 1-Satz-Brief):
-- **3 mood keywords**: e.g. still – vast – golden
-- **The Stage**: background/environment (be specific)
-- **Subject placement**: composition rule + size ratio in frame
-- **Atmosphere**: fog, light direction, time of day, colour temperature
-- **Accent element**: one specific element or "none"
-- **Colour model + palette**: Monochrome / Neutral+Accent / Duotone + specific colours
+**4. Composite Concept**
+- Concept: [1 sentence vision]
+- 3 mood keywords: [word], [word], [word]
+- Stage/background: [brief description]
+- Subject placement: [composition rule + position]
+- Atmosphere: [light, mood, time of day]
+- Accent element: [one detail or "none"]
+- Colour palette: [2–3 colours]
 
-**5. What to Remove or Simplify**
-Specific elements to remove/mask/replace — name each one and explain why it creates noise.
+**5. What to Remove**
+2–3 bullet points: element — reason.
 
 **6. Asset Budget**
-- Main subject:
-- Secondary element: [or none]
-- Accent: [or none]
-- Colours (max 3):
-- Atmospheric effects (max 2):
-Rule: if you add something, something else must go.
+- Main subject: / Secondary: / Accent: / Colours (max 3): / Effects (max 2):
 
-**7. First 3 Steps in Photoshop**
-Concrete, actionable — name specific tools, layers, techniques.
+**7. First 3 Photoshop Steps**
+Three numbered steps, one line each.
 
-**8. Minimalism Score — Current Photo**
-1. Focal point clear: /5
-2. Background calm: /5
-3. Contrasts consistent: /5
-4. Colour controlled: /5
-5. Elements have function: /5
-6. Breathing room: /5
-7. Overall stability: /5
-**Total: /35** — one sentence interpretation.
+**8. Minimalism Score**
+[X] / 35 — [one sentence verdict].
 
-**9. One Key Creative Insight**
-The single biggest creative opportunity this image holds. One sentence only.`;
+**9. One Key Insight**
+One sentence only.`;
 
 // ─────────────────────────────────────────────────────────────────────────────
-// ANTHROPIC API CALL — no internal timeout (Netlify handles the limit)
+// ANTHROPIC API CALL
 // ─────────────────────────────────────────────────────────────────────────────
-exports.handler = async function(event) {
-  if (event.httpMethod !== 'POST') {
-    return { statusCode: 405, body: JSON.stringify({ error: 'Method not allowed' }) };
-  }
-
-  const apiKey = process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ error: 'ANTHROPIC_API_KEY is not configured in Netlify environment variables.' })
-    };
-  }
-
-  let body;
-  try {
-    body = JSON.parse(event.body);
-  } catch {
-    return { statusCode: 400, body: JSON.stringify({ error: 'Invalid request body.' }) };
-  }
-
-  const { mode, image, mediaType } = body;
-  if (!image) {
-    return { statusCode: 400, body: JSON.stringify({ error: 'No image provided.' }) };
-  }
-
-  const userPrompt = mode === 'A' ? USER_PROMPT_A : USER_PROMPT_B;
-  const resolvedMediaType = mediaType || 'image/jpeg';
-
-  const requestBody = JSON.stringify({
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 1500,
-    system: SYSTEM_PROMPT,
-    messages: [
-      {
+function callAnthropic(apiKey, userPrompt, imageBase64, mediaType) {
+  return new Promise((resolve, reject) => {
+    const payload = JSON.stringify({
+      model: 'claude-haiku-4-5',
+      max_tokens: 1200,
+      system: SYSTEM_PROMPT,
+      messages: [{
         role: 'user',
         content: [
-          {
-            type: 'image',
-            source: {
-              type: 'base64',
-              media_type: resolvedMediaType,
-              data: image
-            }
-          },
+          { type: 'image', source: { type: 'base64', media_type: mediaType, data: imageBase64 } },
           { type: 'text', text: userPrompt }
         ]
-      }
-    ]
-  });
+      }]
+    });
 
-  return new Promise((resolve) => {
     const options = {
       hostname: 'api.anthropic.com',
       path: '/v1/messages',
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(payload),
         'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'Content-Length': Buffer.byteLength(requestBody)
+        'anthropic-version': '2023-06-01'
       }
     };
 
@@ -198,35 +134,74 @@ exports.handler = async function(event) {
         try {
           const parsed = JSON.parse(data);
           if (res.statusCode !== 200) {
-            resolve({
-              statusCode: res.statusCode,
-              body: JSON.stringify({ error: parsed.error?.message || 'Anthropic API error' })
-            });
-            return;
+            reject({ status: res.statusCode, body: parsed });
+          } else {
+            resolve(parsed);
           }
-          const analysis = parsed.content?.[0]?.text || '';
-          resolve({
-            statusCode: 200,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ analysis })
-          });
         } catch (e) {
-          resolve({
-            statusCode: 500,
-            body: JSON.stringify({ error: 'Failed to parse API response.' })
-          });
+          reject({ status: 500, body: { error: 'Failed to parse API response' } });
         }
       });
     });
 
-    req.on('error', (e) => {
-      resolve({
-        statusCode: 500,
-        body: JSON.stringify({ error: e.message || 'Network error connecting to Anthropic.' })
-      });
+    req.on('error', (e) => reject({ status: 500, body: { error: e.message } }));
+    req.setTimeout(9000, () => {
+      req.destroy();
+      reject({ status: 504, body: { error: 'Request timed out after 9s' } });
     });
 
-    req.write(requestBody);
+    req.write(payload);
     req.end();
   });
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HANDLER
+// ─────────────────────────────────────────────────────────────────────────────
+exports.handler = async function (event) {
+  const corsHeaders = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Content-Type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Content-Type': 'application/json'
+  };
+
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers: corsHeaders, body: '' };
+  }
+
+  if (event.httpMethod !== 'POST') {
+    return { statusCode: 405, headers: corsHeaders, body: JSON.stringify({ error: 'Method not allowed' }) };
+  }
+
+  let body;
+  try {
+    body = JSON.parse(event.body || '{}');
+  } catch {
+    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'Invalid JSON' }) };
+  }
+
+  const { mode = 'A', image, mediaType = 'image/jpeg' } = body;
+
+  if (!image) {
+    return { statusCode: 400, headers: corsHeaders, body: JSON.stringify({ error: 'No image provided' }) };
+  }
+
+  const apiKey = process.env.ANTHROPIC_API_KEY;
+  if (!apiKey) {
+    return { statusCode: 500, headers: corsHeaders, body: JSON.stringify({ error: 'Server configuration error: API key not set.' }) };
+  }
+
+  const userPrompt = mode === 'A' ? USER_PROMPT_A : USER_PROMPT_B;
+
+  try {
+    const result = await callAnthropic(apiKey, userPrompt, image, mediaType);
+    const analysis = result.content[0].text;
+    return { statusCode: 200, headers: corsHeaders, body: JSON.stringify({ analysis }) };
+  } catch (err) {
+    console.error('Function error:', err);
+    const status = err.status || 500;
+    const message = err.body ? JSON.stringify(err.body) : (err.message || 'Analysis failed');
+    return { statusCode: status, headers: corsHeaders, body: JSON.stringify({ error: message }) };
+  }
 };
