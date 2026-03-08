@@ -103,8 +103,8 @@ One sentence only.`;
 function callAnthropic(apiKey, userPrompt, imageBase64, mediaType) {
   return new Promise((resolve, reject) => {
     const payload = JSON.stringify({
-      model: 'claude-haiku-4-5',
-      max_tokens: 1200,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1500,
       system: SYSTEM_PROMPT,
       messages: [{
         role: 'user',
@@ -145,9 +145,10 @@ function callAnthropic(apiKey, userPrompt, imageBase64, mediaType) {
     });
 
     req.on('error', (e) => reject({ status: 500, body: { error: e.message } }));
-    req.setTimeout(9000, () => {
+    // 25s timeout — gives Netlify's 26s limit enough room
+    req.setTimeout(25000, () => {
       req.destroy();
-      reject({ status: 504, body: { error: 'Request timed out after 9s' } });
+      reject({ status: 504, body: { error: 'Request timed out after 25s' } });
     });
 
     req.write(payload);
