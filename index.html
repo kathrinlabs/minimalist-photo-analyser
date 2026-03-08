@@ -1140,9 +1140,9 @@
        RENDER RESULTS
     ------------------------------------------------------- */
     function renderResults(text, mode) {
-      // Extract score
-      const scoreMatch = text.match(/(\d{1,2})\s*\/\s*35/);
-      const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
+      // Extract score — match "Total: 28/35" or "28 / 35" but NOT "4/5"
+      const scoreMatch = text.match(/\*\*Total:\s*(\d{1,2})\s*\/\s*35\*\*|(\d{1,2})\s*\/\s*35(?!\s*\*\*|\s*—\s*\d)/m);
+      const score = scoreMatch ? parseInt(scoreMatch[1] || scoreMatch[2]) : null;
 
       // Extract interpretation sentence after score
       let interpText = '';
@@ -1326,14 +1326,23 @@
     function renderSuggestions(content) {
       // Split by numbered items or dash items
       const blocks = content.split(/\n(?=\d+\.|[-•])/g).filter(b => b.trim());
-      if (blocks.length < 2) return markdownToHtml(content);
+      // If only one block, try splitting by em-dash pattern on same line
+      const items = blocks.length >= 2 ? blocks : content.split(/\n/).filter(l => l.trim());
       let html = '<div class="suggestion-list">';
-      blocks.forEach(block => {
-        const lines = block.replace(/^\d+\.\s*|^[-•]\s*/, '').split('\n').filter(l => l.trim());
-        if (!lines.length) return;
-        // First line = action, rest = why
-        const action = lines[0].replace(/\*\*/g, '');
-        const why = lines.slice(1).join(' ').trim();
+      items.forEach(block => {
+        const clean = block.replace(/^\d+\.\s*|^[-•]\s*/, '').trim();
+        if (!clean) return;
+        // Try to split on " — " (em-dash) to separate action from why
+        const dashIdx = clean.search(/\s[—–]\s/);
+        let action, why;
+        if (dashIdx > 0) {
+          action = clean.slice(0, dashIdx).replace(/\*\*/g, '').trim();
+          why    = clean.slice(dashIdx).replace(/^\s*[—–]\s*/, '').replace(/\*\*/g, '').trim();
+        } else {
+          const lines = clean.split('\n').filter(l => l.trim());
+          action = lines[0].replace(/\*\*/g, '');
+          why    = lines.slice(1).join(' ').trim();
+        }
         html += `<div class="suggestion-item">
           <div class="suggestion-item-action">${esc(action)}</div>
           ${why ? `<div class="suggestion-item-why">${esc(why)}</div>` : ''}
