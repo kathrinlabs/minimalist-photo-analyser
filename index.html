@@ -1606,7 +1606,9 @@
       const principleNames = ['Focal Point','Contrast','Whitespace','Alignment','Proximity','Balance','Colour'];
       const principleShort = ['Focal','Contrast','Space','Align','Proxim.','Balance','Colour'];
       const pScores = principleNames.map(name => {
-        const rx = new RegExp(name.replace('/','\\/')+'[^\\n]*?(?:Score:\\s*)?(\\d)\\/5','i');
+        // Broad regex: find principle name, then look for X/5 anywhere within the next 300 chars
+        const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        const rx = new RegExp(escapedName + '[\\s\\S]{0,300}?(?:Score[:\\s]+)?(\\d)\\/5', 'i');
         const pm = rawAnalysis.match(rx);
         return pm ? parseInt(pm[1]) : null;
       });
@@ -1640,27 +1642,50 @@
       sections.forEach(section => {
         if (/minimalism score/i.test(section.title)) return;
         if (/key insight/i.test(section.title)) return; // rendered last
-        checkY(16);
-        // Section header bar
+        checkY(18);
+        // Section header bar (height 12mm, text vertically centred)
+        const HDR_H = 12;
         doc.setFillColor(...NAVY);
-        doc.roundedRect(ML, y, CW, 10, 2, 2, 'F');
+        doc.roundedRect(ML, y, CW, HDR_H, 2, 2, 'F');
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(8.5);
         doc.setTextColor(...GOLD);
-        doc.text(section.title.toUpperCase(), ML + 5, y + 7);
-        y += 13;
-        // Content
+        doc.text(section.title.toUpperCase(), ML + 5, y + HDR_H / 2 + 1.5);
+        y += HDR_H + 4;  // 4mm gap between header and body text
+        // Content — render with bullet support
         const plain = cleanContent(section.content)
           .replace(/\*\*([^*]+)\*\*/g, '$1')
           .replace(/\*([^*]+)\*/g, '$1');
         doc.setFont('helvetica', 'normal');
         doc.setFontSize(8.5);
         doc.setTextColor(...TEXT);
-        const lines = doc.splitTextToSize(plain, CW);
-        lines.forEach(line => {
-          checkY(5);
-          doc.text(line, ML, y);
-          y += 4.8;
+        const BODY_W = CW - 2;  // slight inset to avoid overflow
+        const BULLET_X = ML + 3;
+        const BULLET_TEXT_X = ML + 8;
+        const BULLET_W = CW - 10;
+        const LINE_H = 4.8;
+        plain.split('\n').forEach(rawLine => {
+          const trimmed = rawLine.trim();
+          if (!trimmed) { y += 2; return; }
+          if (trimmed.startsWith('- ') || trimmed.startsWith('• ')) {
+            // Bullet line with hanging indent
+            const bulletText = trimmed.replace(/^[-•]\s+/, '');
+            const bLines = doc.splitTextToSize(bulletText, BULLET_W);
+            checkY(bLines.length * LINE_H + 2);
+            doc.text('•', BULLET_X, y);
+            bLines.forEach((bl, bi) => {
+              doc.text(bl, BULLET_TEXT_X, y + bi * LINE_H);
+            });
+            y += bLines.length * LINE_H + 1;
+          } else {
+            // Normal paragraph line
+            const wLines = doc.splitTextToSize(trimmed, BODY_W);
+            checkY(wLines.length * LINE_H + 1);
+            wLines.forEach(wl => {
+              doc.text(wl, ML, y);
+              y += LINE_H;
+            });
+          }
         });
         y += 5;
       });
@@ -1701,8 +1726,10 @@
         doc.text(p + ' / ' + totalPages, PW - ML, PH - 5, { align: 'right' });
       }
 
-      const today = new Date().toISOString().slice(0,10);
-      doc.save('photo-analysis-' + today + '.pdf');
+      const now = new Date();
+      const datePart = now.toISOString().slice(0,10);
+      const timePart = now.toTimeString().slice(0,8).replace(/:/g,'');
+      doc.save('photo-analysis-' + datePart + '-' + timePart + '.pdf');
 
       pdfBtn.textContent = 'Download PDF';
       pdfBtn.disabled = false;
