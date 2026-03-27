@@ -849,7 +849,7 @@
       flex-wrap: wrap;
     }
 
-    .btn-copy, .btn-reset {
+    .btn-pdf, .btn-reset {
       flex: 1;
       min-width: 180px;
       padding: 16px 24px;
@@ -861,7 +861,7 @@
       text-align: center;
     }
 
-    .btn-copy {
+    .btn-pdf {
       background: var(--gold);
       color: var(--navy);
       border: none;
@@ -869,7 +869,7 @@
       box-shadow: var(--shadow);
     }
 
-    .btn-copy:hover {
+    .btn-pdf:hover {
       background: var(--gold-dark);
       transform: translateY(-1px);
       box-shadow: var(--shadow-lg);
@@ -1018,7 +1018,7 @@
       <div id="analysisCards"></div>
 
       <div class="result-actions">
-        <button class="btn-copy" id="copyBtn">Copy Analysis</button>
+        <button class="btn-pdf" id="pdfBtn">Download PDF</button>
         <button class="btn-reset" id="resetBtn">Analyse Another Photo</button>
       </div>
     </div>
@@ -1060,7 +1060,7 @@
     const scoreInterp     = document.getElementById('scoreInterp');
     const scoreBreakdown  = document.getElementById('scoreBreakdown');
     const analysisCards   = document.getElementById('analysisCards');
-    const copyBtn        = document.getElementById('copyBtn');
+    const pdfBtn         = document.getElementById('pdfBtn');
     const resetBtn       = document.getElementById('resetBtn');
 
     /* -------------------------------------------------------
@@ -1506,16 +1506,207 @@
     function hideResults()  { resultsWrapper.classList.remove('visible'); }
 
     /* -------------------------------------------------------
-       COPY
+       PDF DOWNLOAD
     ------------------------------------------------------- */
-    copyBtn.addEventListener('click', () => {
+    pdfBtn.addEventListener('click', () => {
       if (!rawAnalysis) return;
-      navigator.clipboard.writeText(rawAnalysis).then(() => {
-        const orig = copyBtn.textContent;
-        copyBtn.textContent = 'Copied!';
-        setTimeout(() => { copyBtn.textContent = orig; }, 2000);
-      });
+      generatePDF();
     });
+
+    async function generatePDF() {
+      pdfBtn.textContent = 'Generating…';
+      pdfBtn.disabled = true;
+
+      // Load jsPDF dynamically
+      if (!window.jspdf) {
+        await new Promise((resolve, reject) => {
+          const s = document.createElement('script');
+          s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+          s.onload = resolve;
+          s.onerror = reject;
+          document.head.appendChild(s);
+        });
+      }
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+      const PW = 210, PH = 297, ML = 18, MR = 18;
+      const CW = PW - ML - MR;
+      let y = 0;
+
+      const NAVY  = [26, 26, 46];
+      const GOLD  = [215, 154, 112];
+      const WHITE = [255, 255, 255];
+      const TEXT  = [28, 28, 28];
+      const MUTED = [102, 102, 102];
+      const LIGHT = [230, 225, 218];
+
+      function checkY(needed) {
+        if (y + needed > PH - 16) { doc.addPage(); y = 16; }
+      }
+
+      // HEADER
+      doc.setFillColor(...NAVY);
+      doc.rect(0, 0, PW, 28, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(16);
+      doc.setTextColor(...WHITE);
+      doc.text('Minimalist Photo Analyser', PW / 2, 12, { align: 'center' });
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.setTextColor(...GOLD);
+      doc.text('AI-POWERED COMPOSITION FEEDBACK', PW / 2, 20, { align: 'center' });
+      y = 34;
+
+      // PHOTO
+      if (uploadedFile) {
+        try {
+          const dataUrl = await new Promise(res => {
+            const r = new FileReader();
+            r.onload = e => res(e.target.result);
+            r.readAsDataURL(uploadedFile);
+          });
+          const dims = await new Promise(res => {
+            const img = new Image();
+            img.onload = () => res({ w: img.naturalWidth, h: img.naturalHeight });
+            img.src = dataUrl;
+          });
+          const maxW = CW, maxH = 90;
+          let iw = maxW, ih = (dims.h / dims.w) * iw;
+          if (ih > maxH) { ih = maxH; iw = (dims.w / dims.h) * ih; }
+          const ix = ML + (CW - iw) / 2;
+          doc.addImage(dataUrl, uploadedFile.type === 'image/png' ? 'PNG' : 'JPEG', ix, y, iw, ih);
+          y += ih + 8;
+        } catch(e) {}
+      }
+
+      // SCORE
+      const scoreMatch = rawAnalysis.match(/\[?(\d{1,2})\]?\s*\/\s*35/);
+      const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
+      if (score !== null) {
+        checkY(30);
+        doc.setFillColor(...NAVY);
+        doc.roundedRect(ML, y, CW, 26, 3, 3, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(22);
+        doc.setTextColor(...GOLD);
+        doc.text(String(score), ML + CW / 2 - 6, y + 14, { align: 'right' });
+        doc.setFontSize(12);
+        doc.setTextColor(200, 200, 200);
+        doc.text('/ 35', ML + CW / 2 - 4, y + 14);
+        let bandText = score >= 29 ? 'EXCEPTIONAL' : score >= 22 ? 'STRONG MINIMALIST WORK' : score >= 15 ? 'DEVELOPING' : 'NEEDS RETHINKING';
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(...GOLD);
+        doc.text('MINIMALISM SCORE  —  ' + bandText, PW / 2, y + 22, { align: 'center' });
+        y += 32;
+      }
+
+      // 7 DESIGN PRINCIPLES BREAKDOWN
+      const principleNames = ['Focal Point','Contrast','Whitespace','Alignment','Proximity','Balance','Colour'];
+      const principleShort = ['Focal','Contrast','Space','Align','Proxim.','Balance','Colour'];
+      const pScores = principleNames.map(name => {
+        const rx = new RegExp(name.replace('/','\\/')+'[^\\n]*?(?:Score:\\s*)?(\\d)\\/5','i');
+        const pm = rawAnalysis.match(rx);
+        return pm ? parseInt(pm[1]) : null;
+      });
+      if (pScores.some(s => s !== null)) {
+        checkY(36);
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8);
+        doc.setTextColor(...NAVY);
+        doc.text('7 DESIGN PRINCIPLES', ML, y);
+        y += 5;
+        const colW = CW / 7;
+        pScores.forEach((s, i) => {
+          const cx = ML + i * colW + colW / 2;
+          doc.setFillColor(...LIGHT);
+          doc.roundedRect(ML + i * colW, y, colW - 1, 18, 2, 2, 'F');
+          doc.setFont('helvetica', 'bold');
+          doc.setFontSize(10);
+          const sc = s === null ? MUTED : s >= 4 ? [80,160,80] : s <= 2 ? [200,80,80] : NAVY;
+          doc.setTextColor(...sc);
+          doc.text(s !== null ? s+'/5' : '—', cx, y + 8, { align: 'center' });
+          doc.setFont('helvetica', 'normal');
+          doc.setFontSize(5.5);
+          doc.setTextColor(...MUTED);
+          doc.text(principleShort[i], cx, y + 14, { align: 'center' });
+        });
+        y += 24;
+      }
+
+      // ANALYSIS SECTIONS
+      const sections = parseSections(rawAnalysis);
+      sections.forEach(section => {
+        if (/minimalism score/i.test(section.title)) return;
+        if (/key insight/i.test(section.title)) return; // rendered last
+        checkY(16);
+        // Section header bar
+        doc.setFillColor(...NAVY);
+        doc.roundedRect(ML, y, CW, 10, 2, 2, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...GOLD);
+        doc.text(section.title.toUpperCase(), ML + 5, y + 7);
+        y += 13;
+        // Content
+        const plain = cleanContent(section.content)
+          .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/\*([^*]+)\*/g, '$1');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...TEXT);
+        const lines = doc.splitTextToSize(plain, CW);
+        lines.forEach(line => {
+          checkY(5);
+          doc.text(line, ML, y);
+          y += 4.8;
+        });
+        y += 5;
+      });
+
+      // ONE KEY INSIGHT (dark block)
+      const insight = sections.find(s => /key insight/i.test(s.title));
+      if (insight) {
+        const plain = cleanContent(insight.content)
+          .replace(/\*\*([^*]+)\*\*/g, '$1')
+          .replace(/\*([^*]+)\*/g, '$1');
+        const iLines = doc.splitTextToSize(plain, CW - 10);
+        const bH = iLines.length * 4.8 + 14;
+        checkY(bH);
+        doc.setFillColor(...NAVY);
+        doc.roundedRect(ML, y, CW, bH, 3, 3, 'F');
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(...GOLD);
+        doc.text('ONE KEY INSIGHT', ML + 5, y + 7);
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(8.5);
+        doc.setTextColor(...WHITE);
+        iLines.forEach((line, i) => { doc.text(line, ML + 5, y + 12 + i * 4.8); });
+        y += bH + 6;
+      }
+
+      // FOOTER on every page
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let p = 1; p <= totalPages; p++) {
+        doc.setPage(p);
+        doc.setFillColor(...NAVY);
+        doc.rect(0, PH - 12, PW, 12, 'F');
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(7);
+        doc.setTextColor(180, 180, 200);
+        doc.text('Minimalist Photo Analyser — Based on The Art of Minimalist Photo Composition by Kathrin Federer', PW / 2, PH - 5, { align: 'center' });
+        doc.setTextColor(...GOLD);
+        doc.text(p + ' / ' + totalPages, PW - ML, PH - 5, { align: 'right' });
+      }
+
+      const today = new Date().toISOString().slice(0,10);
+      doc.save('photo-analysis-' + today + '.pdf');
+
+      pdfBtn.textContent = 'Download PDF';
+      pdfBtn.disabled = false;
+    }
 
     /* -------------------------------------------------------
        RESET
