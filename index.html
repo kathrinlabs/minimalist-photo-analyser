@@ -1651,7 +1651,7 @@
         doc.setFontSize(8.5);
         doc.setTextColor(...GOLD);
         doc.text(section.title.toUpperCase(), ML + 5, y + HDR_H / 2 + 1.5);
-        y += HDR_H + 4;  // 4mm gap between header and body text
+        y += HDR_H + 8;  // 8mm gap between header and body text
         // Content — render with bullet support
         const plain = cleanContent(section.content)
           .replace(/\*\*([^*]+)\*\*/g, '$1')
