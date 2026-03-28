@@ -1203,9 +1203,10 @@
        RENDER RESULTS
     ------------------------------------------------------- */
     function renderResults(text, mode) {
-      // Extract score — match [X] / 35 or X / 35 but NOT X/5
-      const scoreMatch = text.match(/\[?(\d{1,2})\]?\s*\/\s*35/);
-      const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
+      // Extract score — must be preceded by score context, value capped at 35
+      const scoreMatch = text.match(/(?:score|total|minimalism)[^\n]{0,40}?\[?(\d{1,2})\]?\s*\/\s*35/i)
+                      || text.match(/\[?(\d{1,2})\]?\s*\/\s*35(?!\s*[%])/i);
+      const score = scoreMatch ? Math.min(parseInt(scoreMatch[1]), 35) : null;
 
       // Extract interpretation sentence after score
       let interpText = '';
@@ -1583,9 +1584,10 @@
         } catch(e) {}
       }
 
-      // SCORE
-      const scoreMatch = rawAnalysis.match(/\[?(\d{1,2})\]?\s*\/\s*35/);
-      const score = scoreMatch ? parseInt(scoreMatch[1]) : null;
+      // SCORE — require score context and cap value at 35
+      const scoreMatch = rawAnalysis.match(/(?:score|total|minimalism)[^\n]{0,40}?\[?(\d{1,2})\]?\s*\/\s*35/i)
+                       || rawAnalysis.match(/\[?(\d{1,2})\]?\s*\/\s*35(?!\s*[%])/i);
+      const score = scoreMatch ? Math.min(parseInt(scoreMatch[1]), 35) : null;
       if (score !== null) {
         checkY(30);
         doc.setFillColor(...NAVY);
